@@ -37,6 +37,10 @@ Index of this file:
 #define DPG_VULKAN(x) assert(x == VK_SUCCESS)
 #endif
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 //-----------------------------------------------------------------------------
 // [SECTION] forward declarations
 //-----------------------------------------------------------------------------
@@ -126,5 +130,9 @@ typedef struct _dpgVulkanGraphics
     uint32_t                 uFramesInFlight;    // number of frames in flight (should be less then PL_MAX_FRAMES_IN_FLIGHT)
     size_t                   szCurrentFrameIndex; // current frame being used
 } dpgVulkanGraphics;
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif //PL_GRAPHICS_VULKAN_H

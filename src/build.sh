@@ -51,7 +51,7 @@ fi
 DPG_CONFIG=Debug
 
 # common include directories
-DPG_INCLUDE_DIRECTORIES="-I../dependencies/glfw/include -I../dependencies/imgui -I../dependencies/pilotlight"
+DPG_INCLUDE_DIRECTORIES="-I../dependencies/glfw/include -I../dependencies/imgui -I../dependencies/imgui/backends"
 
 # common link directories
 DPG_LINK_DIRECTORIES="-L../out"
@@ -204,7 +204,7 @@ DPG_LINK_DIRECTORIES+=" -L$VULKAN_SDK/lib"
 DPG_LINK_DIRECTORIES+=" -L/usr/lib/x86_64-linux-gnu"
 
 # common compiler flags
-DPG_COMPILER_FLAGS="-std=gnu99"
+DPG_COMPILER_FLAGS=
 
 # common linker flags
 DPG_LINK_FLAGS="-ldl -lm"
@@ -225,13 +225,13 @@ fi
 ###############################################################################
 
 GLFW_DEFINES="-D_GLFW_VULKAN_STATIC -D_GLFW_X11"
-GLFW_COMPILER_FLAGS=-std=gnu99
+GLFW_COMPILER_FLAGS=-std=c99
 
 # debug specific
 if [[ "$DPG_CONFIG" == "Debug" ]]; then
 
   # debug specific compiler flags
-  DPG_COMPILER_FLAGS+=" --debug -g"
+  GLFW_COMPILER_FLAGS+=" --debug -g"
 
 # release specific
 elif [[ "$DPG_CONFIG" == "Release" ]]; then
@@ -239,7 +239,7 @@ elif [[ "$DPG_CONFIG" == "Release" ]]; then
 fi
 
 echo
-echo ${YELLOW}Step 0: glfw.o${NC}
+echo ${YELLOW}Step: glfw.o${NC}
 echo ${YELLOW}~~~~~~~~~~~~~~${NC}
 echo ${CYAN}Compiling...${NC}
 gcc -c -fPIC ../dependencies/glfw/src/context.c $GLFW_DEFINES $GLFW_COMPILER_FLAGS $DPG_INCLUDE_DIRECTORIES -o ../out/context.o
@@ -268,16 +268,55 @@ then
 fi
 
 ###############################################################################
+#                                Dear ImGui                                   #
+###############################################################################
+
+IMGUI_DEFINES=
+IMGUI_COMPILER_FLAGS=-std=c++14
+
+# debug specific
+if [[ "$DPG_CONFIG" == "Debug" ]]; then
+
+  # debug specific compiler flags
+  DPG_COMPILER_FLAGS+=" --debug -g"
+
+# release specific
+elif [[ "$DPG_CONFIG" == "Release" ]]; then
+  echo "No release specifics yet"
+fi
+
+echo
+echo ${YELLOW}Step: imgui.o${NC}
+echo ${YELLOW}~~~~~~~~~~~~~~${NC}
+echo ${CYAN}Compiling...${NC}
+gcc -c -fPIC ../dependencies/imgui/imgui_demo.cpp $IMGUI_DEFINES $IMGUI_COMPILER_FLAGS $DPG_INCLUDE_DIRECTORIES -o ../out/imgui_demo.o
+gcc -c -fPIC ../dependencies/imgui/imgui_draw.cpp $IMGUI_DEFINES $IMGUI_COMPILER_FLAGS $DPG_INCLUDE_DIRECTORIES -o ../out/imgui_draw.o
+gcc -c -fPIC ../dependencies/imgui/imgui_tables.cpp $IMGUI_DEFINES $IMGUI_COMPILER_FLAGS $DPG_INCLUDE_DIRECTORIES -o ../out/imgui_tables.o
+gcc -c -fPIC ../dependencies/imgui/imgui_widgets.cpp $IMGUI_DEFINES $IMGUI_COMPILER_FLAGS $DPG_INCLUDE_DIRECTORIES -o ../out/imgui_widgets.o
+gcc -c -fPIC ../dependencies/imgui/imgui.cpp $IMGUI_DEFINES $IMGUI_COMPILER_FLAGS $DPG_INCLUDE_DIRECTORIES -o ../out/imgui.o
+gcc -c -fPIC ../dependencies/imgui/backends/imgui_impl_vulkan.cpp $IMGUI_DEFINES $IMGUI_COMPILER_FLAGS $DPG_INCLUDE_DIRECTORIES -o ../out/imgui_impl_vulkan.o
+gcc -c -fPIC ../dependencies/imgui/backends/imgui_impl_glfw.cpp $IMGUI_DEFINES $IMGUI_COMPILER_FLAGS $DPG_INCLUDE_DIRECTORIES -o ../out/imgui_impl_glfw.o
+
+ar rcs ../out/imguid.a ../out/*.o
+rm ../out/*.o
+
+if [ $? -ne 0 ]
+then
+    DPG_RESULT=${BOLD}${RED}Failed.${NC}
+fi
+
+###############################################################################
 #                              linux executable                               #
 ###############################################################################
 
-DPG_SOURCES="dpg_main.c dearpygui.c ../out/glfw3d.a"
+DPG_SOURCES="dearpygui.c"
 
 echo
-echo ${YELLOW}Step 1: sandbox${NC}
+echo ${YELLOW}Step: sandbox${NC}
 echo ${YELLOW}~~~~~~~~~~~~~~~~~~~${NC}
 echo ${CYAN}Compiling and Linking...${NC}
-gcc $DPG_SOURCES $DPG_DEFINES $DPG_COMPILER_FLAGS $DPG_INCLUDE_DIRECTORIES $DPG_LINK_DIRECTORIES $DPG_LINK_FLAGS $DPG_LINK_LIBRARIES -o ../out/sandbox
+gcc -c -fPIC $DPG_SOURCES $DPG_DEFINES -std=c99 $DPG_COMPILER_FLAGS $DPG_INCLUDE_DIRECTORIES -o ../out/dearpygui.o
+g++ dpg_main.cpp ../out/glfw3d.a ../out/imguid.a ../out/dearpygui.o $DPG_DEFINES -std=c++14 $DPG_COMPILER_FLAGS $DPG_INCLUDE_DIRECTORIES $DPG_LINK_DIRECTORIES $DPG_LINK_FLAGS $DPG_LINK_LIBRARIES -o ../out/sandbox
 
 if [ $? -ne 0 ]
 then

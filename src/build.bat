@@ -39,7 +39,7 @@
 @set DPG_INCLUDE_DIRECTORIES=-I"%WindowsSdkDir%Include\shared" %DPG_INCLUDE_DIRECTORIES%
 @set DPG_INCLUDE_DIRECTORIES=-I%VULKAN_SDK%/Include            %DPG_INCLUDE_DIRECTORIES%
 @set DPG_INCLUDE_DIRECTORIES=-I..\dependencies\imgui           %DPG_INCLUDE_DIRECTORIES%
-@set DPG_INCLUDE_DIRECTORIES=-I..\dependencies\pilotlight      %DPG_INCLUDE_DIRECTORIES%
+@set DPG_INCLUDE_DIRECTORIES=-I..\dependencies\imgui\backends  %DPG_INCLUDE_DIRECTORIES%
 @set DPG_INCLUDE_DIRECTORIES=-I..\dependencies\glfw\include    %DPG_INCLUDE_DIRECTORIES%
 
 @rem link directories
@@ -57,7 +57,7 @@
 @rem release specific
 @if "%DPG_CONFIG%" equ "Release" (
 
-    @set DPG_LINK_LIBRARIES=ucrt.lib glfw.lib %DPG_LINK_LIBRARIES%
+    @set DPG_LINK_LIBRARIES=ucrt.lib glfw.lib imgui.lib %DPG_LINK_LIBRARIES%
 
     @rem release specific defines
     @set DPG_DEFINES=%DPG_DEFINES%
@@ -69,7 +69,7 @@
 @rem debug specific
 @if "%DPG_CONFIG%" equ "Debug" (
 
-    @set DPG_LINK_LIBRARIES=ucrtd.lib glfwd.lib %DPG_LINK_LIBRARIES%
+    @set DPG_LINK_LIBRARIES=ucrtd.lib glfwd.lib imguid.lib %DPG_LINK_LIBRARIES%
 
     @rem debug specific defines
     @set DPG_DEFINES=-D_DEBUG %DPG_DEFINES%
@@ -90,14 +90,14 @@
 @rem release specific
 @if "%DPG_CONFIG%" equ "Release" (
     @set GLFW_BIN=glfw.lib
-    @if exist ..\out\glfw.lib @goto MainBuild
+    @if exist ..\out\glfw.lib @goto ImGuiBuild
 )
 @rem debug specific
 @if "%DPG_CONFIG%" equ "Debug" (
     @set GLFW_BIN=glfwd.lib
     @set GLFW_DEFINES=-D_DEBUG %GLFW_DEFINES%
     @set GLFW_COMPILER_FLAGS=-Od -MDd -Zi %GLFW_COMPILER_FLAGS%
-    @if exist ..\out\glfwd.lib @goto MainBuild
+    @if exist ..\out\glfwd.lib @goto ImGuiBuild
 )
 
 @set GLFW_SOURCES="../dependencies/glfw/src/context.c"
@@ -107,7 +107,6 @@
 @set GLFW_SOURCES="../dependencies/glfw/src/vulkan.c"         %GLFW_SOURCES%
 @set GLFW_SOURCES="../dependencies/glfw/src/window.c"         %GLFW_SOURCES%
 @set GLFW_SOURCES="../dependencies/glfw/src/context.c"        %GLFW_SOURCES%
-
 @set GLFW_SOURCES="../dependencies/glfw/src/egl_context.c"    %GLFW_SOURCES%
 @set GLFW_SOURCES="../dependencies/glfw/src/wgl_context.c"    %GLFW_SOURCES%
 @set GLFW_SOURCES="../dependencies/glfw/src/osmesa_context.c" %GLFW_SOURCES%
@@ -121,7 +120,7 @@
 
 @rem run compiler
 @echo.
-@echo [1m[93mStep 0: glfw.lib[0m
+@echo [1m[93mStep: glfw.lib[0m
 @echo [1m[93m~~~~~~~~~~~~~~~~[0m
 @echo [1m[36mCompiling...[0m
 cl %GLFW_COMPILER_FLAGS% %GLFW_DEFINES% -c -permissive- %GLFW_SOURCES% -Fo..\out\
@@ -141,15 +140,65 @@ lib -nologo -OUT:..\out\%GLFW_BIN% ..\out\*.obj
     @del ..\out\*.obj
 
 @rem ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+@rem |                          Dear ImGui                                    |
+@rem ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+:ImGuiBuild
+
+@set IMGUI_DEFINES=-DUNICODE -D_UNICODE
+@set IMGUI_COMPILER_FLAGS=-nologo -std:c++14
+
+@rem release specific
+@if "%DPG_CONFIG%" equ "Release" (
+    @set IMGUI_BIN=imgui.lib
+    @if exist ..\out\imgui.lib @goto MainBuild
+)
+@rem debug specific
+@if "%DPG_CONFIG%" equ "Debug" (
+    @set IMGUI_BIN=imguid.lib
+    @set IMGUI_DEFINES=-D_DEBUG %IMGUI_DEFINES%
+    @set IMGUI_COMPILER_FLAGS=-Od -MDd -Zi %IMGUI_COMPILER_FLAGS%
+    @if exist ..\out\imguid.lib @goto MainBuild
+)
+
+@set IMGUI_SOURCES="../dependencies/imgui/imgui_demo.cpp"
+@set IMGUI_SOURCES="../dependencies/imgui/imgui_draw.cpp"                 %IMGUI_SOURCES%
+@set IMGUI_SOURCES="../dependencies/imgui/imgui_tables.cpp"               %IMGUI_SOURCES%
+@set IMGUI_SOURCES="../dependencies/imgui/imgui_widgets.cpp"              %IMGUI_SOURCES%
+@set IMGUI_SOURCES="../dependencies/imgui/imgui.cpp"                      %IMGUI_SOURCES%
+@set IMGUI_SOURCES="../dependencies/imgui/backends/imgui_impl_vulkan.cpp" %IMGUI_SOURCES%
+@set IMGUI_SOURCES="../dependencies/imgui/backends/imgui_impl_glfw.cpp"   %IMGUI_SOURCES%
+
+@rem run compiler
+@echo.
+@echo [1m[93mStep: imgui.lib[0m
+@echo [1m[93m~~~~~~~~~~~~~~~~[0m
+@echo [1m[36mCompiling...[0m
+cl %IMGUI_COMPILER_FLAGS% %IMGUI_DEFINES% %DPG_INCLUDE_DIRECTORIES% -c -permissive- %IMGUI_SOURCES% -Fo..\out\
+
+@rem check build status
+@set DPG_BUILD_STATUS=%ERRORLEVEL%
+@if %DPG_BUILD_STATUS% NEQ 0 (
+    echo [1m[91mCompilation Failed with error code[0m: %DPG_BUILD_STATUS%
+    @set DPG_RESULT=[1m[91mFailed.[0m
+    goto CleanupImGui
+)
+
+lib -nologo -OUT:..\out\%IMGUI_BIN% ..\out\*.obj
+
+:CleanupImGui
+    @echo [1m[36mCleaning...[0m
+    @del ..\out\*.obj
+
+@rem ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 @rem |                          Executable                                    |
 @rem ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 :MainBuild
 
-@set DPG_SOURCES=dpg_main.c dearpygui.c
+@set DPG_SOURCES=dpg_main.cpp dearpygui.c
 
 @rem run compiler
 @echo.
-@echo [1m[93mStep 1: sandbox.exe[0m
+@echo [1m[93mStep: sandbox.exe[0m
 @echo [1m[93m~~~~~~~~~~~~~~~~~~~~~~~~[0m
 @echo [1m[36mCompiling and Linking...[0m
 @cl %DPG_INCLUDE_DIRECTORIES% %DPG_DEFINES% %DPG_COMPILER_FLAGS% -permissive- %DPG_SOURCES% -Fe..\out\sandbox.exe -Fo..\out\ -link -incremental:no %DPG_LINKER_FLAGS% %DPG_LINK_DIRECTORIES% %DPG_LINK_LIBRARIES%
