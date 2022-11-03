@@ -107,7 +107,6 @@
 @set GLFW_SOURCES="../dependencies/glfw/src/vulkan.c"         %GLFW_SOURCES%
 @set GLFW_SOURCES="../dependencies/glfw/src/window.c"         %GLFW_SOURCES%
 @set GLFW_SOURCES="../dependencies/glfw/src/context.c"        %GLFW_SOURCES%
-
 @set GLFW_SOURCES="../dependencies/glfw/src/egl_context.c"    %GLFW_SOURCES%
 @set GLFW_SOURCES="../dependencies/glfw/src/wgl_context.c"    %GLFW_SOURCES%
 @set GLFW_SOURCES="../dependencies/glfw/src/osmesa_context.c" %GLFW_SOURCES%
